@@ -40,24 +40,33 @@ jobs:
           exit 1
         fi
         
-    - name: Update module.json version
+    - name: Extract version number
       run: |
         VERSION="${{ github.event.inputs.version }}"
-        VERSION_NUMBER="${VERSION#v}"  # Remove 'v' prefix
-        jq --arg version "$VERSION_NUMBER" '.version = $version' module.json > module.json.tmp
-        mv module.json.tmp module.json
+        VERSION_NUMBER="${VERSION#v}"  # Remove 'v' prefix if present
+        echo "VERSION_NUMBER=$VERSION_NUMBER" >> $GITHUB_ENV
+        
+    - name: Update module.json version and download link
+      uses: cschleiden/replace-tokens@v1
+      with:
+        files: './module.json'
+      env:
+        DOWNLOAD: https://github.com/${{github.repository}}/releases/download/${{github.event.inputs.version}}/mallindor-rest-${{github.event.inputs.version}}.zip
+        VERSION: ${{ env.VERSION_NUMBER }}
         
     - name: Create release bundle
       run: |
         # Create a temporary directory for the bundle
-        mkdir -p mallindor-rest
+        mkdir -p release-bundle
         
-        # Copy required files to bundle directory
-        cp module.json mallindor-rest/
-        cp -r dist mallindor-rest/
+        # Copy module.json to bundle directory
+        cp module.json release-bundle/
         
-        # Create the zip file
-        zip -r mallindor-rest-${{ github.event.inputs.version }}.zip mallindor-rest/
+        # Copy dist contents (not the dist folder itself) to bundle directory
+        cp -r dist/* release-bundle/
+        
+        # Create the zip file from bundle contents
+        (cd release-bundle; zip -r ../mallindor-rest-${{ github.event.inputs.version }}.zip .)
         
     - name: Verify bundle contents
       run: |
@@ -75,19 +84,7 @@ jobs:
         body: |
           ## Installation
           
-          1. Download the `mallindor-rest-${{ github.event.inputs.version }}.zip` file
-          2. Extract it to your FoundryVTT `Data/modules/` directory
-          3. Enable the module in your world settings
-          
-          ## Requirements
-          - FoundryVTT v13+
-          - D&D 5e system v5.0.0+
-          - Socket.io module (socketlib)
-          
-          ## Features
-          - Custom rest mechanics with exhaustion system
-          - Partial healing during rests
-          - Socket-based multiplayer support
+          Copy the link to module.json below and paste into Foundry module installer.
         draft: false
         prerelease: ${{ github.event.inputs.prerelease }}
         

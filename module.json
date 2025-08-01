@@ -2,13 +2,15 @@
   "id": "mallindor-rest",
   "title": "Mallindor Rest Rules",
   "description": "Implements Mallindor-style rest mechanics with exhaustion, partial healing, and custom dialog triggers.",
-  "version": "1.0.0",
+  "version": "#{VERSION}#",
   "authors": [
     {
       "name": "Dov Rosenberg"
     }
   ],
   "url": "https://github.com/dovrosenberg/mallindor-rest",
+  "manifest": "https://github.com/dovrosenberg/mallindor-rest/releases/latest/download/module.json",
+  "download": "#{DOWNLOAD}#",
   "esmodules": [
     "scripts/index.mjs"
   ],
