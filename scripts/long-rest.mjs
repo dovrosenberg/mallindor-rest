@@ -2,21 +2,21 @@
  * Long Rest functionality for Mallindor Rest Module
  */
 
-import { SocketManager } from "./socket.mjs";
-import { saveHP, restoreHP } from "./hp.mjs";
+import { SocketManager } from './socket.mjs';
+import { saveHP, restoreHP, addHD } from './hp.mjs';
 
 export const longRest = async function () { 
   // Mallindor Custom Long Rest Macro
   // Applies partial healing, exhaustion check, lets players reallocate restored spell slots, and allows HD healing
 
-  const pcs = game.actors.filter(a => a.type === "character");
+  const pcs = game.actors.filter(a => a.type === 'character');
 
   const content = `<form>
     <div style="display: flex; flex-direction: column; gap: 0.5em;">
       <div>
         <label>Select PCs for Mallindor Long Rest:</label><br>
         <select multiple name="actors" size="${pcs.length}" style="width: 100%;">
-          ${pcs.map(p => `<option value="${p.id}">${p.name}</option>`).join("")}
+          ${pcs.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
         </select>
       </div>
       <div>
@@ -26,11 +26,11 @@ export const longRest = async function () {
   </form>`;
 
   new Dialog({
-    title: "Mallindor Long Rest",
+    title: 'Mallindor Long Rest',
     content,
     buttons: {
       rest: {
-        label: "Apply Long Rest",
+        label: 'Apply Long Rest',
         callback: async (html) => {
           const selected = Array.from(html[0].querySelector('select').selectedOptions).map(o => o.value);
           const hadCombat = html.find('[name="hadCombat"]')[0].checked;
@@ -43,7 +43,7 @@ export const longRest = async function () {
             for (let lvl = 1; lvl <= 9; lvl++) {
               savedSlots[`spell${lvl}`] = getProperty(actor, `system.spells.spell${lvl}.value`);
             }
-            savedSlots.pact = getProperty(actor, "system.spells.pact.value");
+            savedSlots.pact = getProperty(actor, 'system.spells.pact.value');
 
             saveHP(actor);
             
@@ -67,15 +67,14 @@ export const longRest = async function () {
             for (let lvl = 1; lvl <= 9; lvl++) {
               restoreSlots[`system.spells.spell${lvl}.value`] = savedSlots[`spell${lvl}`];
             }
-            restoreSlots["system.spells.pact.value"] = savedSlots.pact;
+            restoreSlots['system.spells.pact.value'] = savedSlots.pact;
             await actor.update(restoreSlots);
 
             // add one HD to the actor
-            HD.value = Math.min(HD.max, HD.value + 1);
-            await actor.update({ "system.attributes.hd": HD });
+            const addedHD = await addHD(actor);
 
-            const playerUser = game.users.find(u => u.active && u.id!==game.user.id && actor.testUserPermission(u, "OWNER"));
-            const whisperTo = playerUser ? [playerUser.id, ...ChatMessage.getWhisperRecipients("GM").map(u => u.id)] : ChatMessage.getWhisperRecipients("GM").map(u => u.id);
+            const playerUser = game.users.find(u => u.active && u.id !== game.user.id && actor.testUserPermission(u, 'OWNER'));
+            const whisperTo = playerUser ? [playerUser.id, ...ChatMessage.getWhisperRecipients('GM').map(u => u.id)] : ChatMessage.getWhisperRecipients('GM').map(u => u.id);
 
             // Send reallocation prompt
             if (toRestore > 0) {
@@ -91,7 +90,7 @@ export const longRest = async function () {
               try {
                 await SocketManager.assignHitDice(playerUser.id, actor.id);
               } catch (error) {
-                console.error("Mallindor Rest Module | Socket call failed:", error);
+                console.error('Mallindor Rest Module | Socket call failed:', error);
               }
             }
 
@@ -99,31 +98,31 @@ export const longRest = async function () {
             if (hadCombat) {
               const ex = actor.system.attributes.exhaustion || 0;
               const dc = 11 + 2 * ex;
-              const result = await new Roll("1d20 + @abilities.con.mod", actor.getRollData()).roll({ async: true });
+              const result = await new Roll('1d20 + @abilities.con.mod', actor.getRollData()).roll({ async: true });
               result.toMessage({ flavor: `${actor.name} Long Rest CON Save (DC ${dc})` });
               if (result.total < dc) {
                 const newEx = Math.min(ex + 1, 6);
-                await actor.update({ "system.attributes.exhaustion": newEx });
+                await actor.update({ 'system.attributes.exhaustion': newEx });
                 if (newEx >= 6) {
                   ChatMessage.create({
                     content: `<strong>${actor.name}</strong> has died from exhaustion.`,
-                    whisper: ChatMessage.getWhisperRecipients("GM")
+                    whisper: ChatMessage.getWhisperRecipients('GM')
                   });
                 } else {
                   ChatMessage.create({
                     content: `<strong>${actor.name}</strong> gained 1 level of exhaustion (now ${newEx}).`,
-                    whisper: ChatMessage.getWhisperRecipients("GM")
+                    whisper: ChatMessage.getWhisperRecipients('GM')
                   });
                 }
               }
             }
 
-            ChatMessage.create({ content: `<strong>${actor.name}</strong> completed a Mallindor Long Rest. HP restoration reduced by ${unrecoveredHP}. Spell slots have not been restored yet.`, whisper: [] });
+            ChatMessage.create({ content: `<strong>${actor.name}</strong> completed a Mallindor Long Rest. ${unrecoveredHP > 0 ? `HP restoration reduced by ${unrecoveredHP}.` : ''} ${addedHD ? 'One HD has been restored.' : ''} Spell slots have not been restored yet.`, whisper: [] });
           }
         }
       },
-      cancel: { label: "Cancel" }
+      cancel: { label: 'Cancel' }
     },
-    default: "rest"
+    default: 'rest'
   }).render(true);
 };
