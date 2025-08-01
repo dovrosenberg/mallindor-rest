@@ -9,13 +9,11 @@
  * - Store the current HD and hit points
  * - Apply a normal D&D short rest
  * - Restore the HD and hit points in case they somehow changed
- * - Allow sorcerers to use HD for sorcery points on the player side
  * - If the counter is at 3+ short rests, apply a level of exhaustion
  * - Add to the short rest counter
  * 
  */
 import { saveHP, restoreHP } from './hp.mjs';
-import { SocketManager } from './socket.mjs';
 
 export const shortRest = async function () {
   const pcs = game.actors.filter(a => a.type === 'character');
@@ -55,9 +53,6 @@ export const shortRest = async function () {
 
             // Suppress Hit Dice healing by restoring any that happened (shouldn't be any, but just in case)
             await restoreHP(actor);
-
-            // allow sorcerers to use HD for sorcery points
-            SocketManager.assignSorceryPoints(actor.id);
 
             // Update short rest counter on each actor
             const count = (actor.getFlag('world', 'mallindor.shortRestCount') || 0) + 1;

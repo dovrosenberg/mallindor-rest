@@ -11,7 +11,7 @@ import { restoreSlots, saveSpells } from './spells.mjs';
  * - Recover 1/2 HP lost (rounded up)
  * - Recover 1/2 used spell slot levels (rounded up) (warlocks get full recovery)
  * - Recover 1 HD if you have any spent HD
- * - Characters can then apply HD for sorcery points or to heal
+ * - Characters can then apply HD to heal
  * - No exhaustion recovery
  * - If there was combat or HP loss this day, a group CON save.  Each player's DC is 11+2/level of exhaustion
  *   - On a success (>=50% pass), nothing happens
@@ -24,7 +24,7 @@ import { restoreSlots, saveSpells } from './spells.mjs';
  * - Apply a normal D&D long rest
  * - Reset HP and HD to the proper (penalized recovery) levels
  * - Add on HD if you have any spent HD
- * - Allow players with HD to apply HD for sorcery points or to heal
+ * - Allow players with HD to apply HD to heal
  * - Allow players with spells to reallocate spell slots
  * - Clear the short rest counter
  *
@@ -89,7 +89,7 @@ export const longRest = async function () {
 
             if (playerUser) {
               try {
-                // Send HD spending message - this will trigger the client on the players side to allow HD for healing and sorcery
+                // Send HD spending message - this will trigger the client on the players side to allow HD for healing
                 await SocketManager.assignHitDice(playerUser.id, actor.id);
 
                 // Send reallocation prompt

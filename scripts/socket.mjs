@@ -1,7 +1,6 @@
 /**
  * Manage the socket calls
  */
-import { savePactSpells, restorePactSpells } from './spells.mjs';
 
 // Keep the original hook as backup in case it does fire
 Hooks.once('socketlib.ready', () => {
@@ -11,7 +10,6 @@ Hooks.once('socketlib.ready', () => {
 
     // register the assign hit dice socket
     SocketManager._socket.register('assignHitDice', assignHitDice);
-    SocketManager._socket.register('assignSorceryPoints', assignSorceryPoints);
   }
 });
 
@@ -29,10 +27,6 @@ export class SocketManager {
   static async assignHitDice(userId, actorId) {
     await SocketManager._socket.executeForUsers('assignHitDice', [userId], actorId);
   }
-
-  static async assignSorceryPoints(userId, actorId) {
-    await SocketManager._socket.executeForUsers('assignSorceryPoints', [userId], actorId);
-}
 
   static _setupCSS() {
     // Add CSS rule to hide the Rest Configuration fieldset with newDay checkbox and then the button
@@ -68,18 +62,5 @@ const assignHitDice = async (actorId) => {
   // no need to handle warlocks because they get full recovery on short and long rest, so they just got
   //    recovered before we got here anyway
   // show the dialog to allow the player to use HD
-  await actor.shortRest({ dialog: true });
-};
-
-// show the dialog to allow the player to use HD for sorcery points
-const assignSorceryPoints = async (actorId) => {
-  debugger;
-  const actor = game.actors.get(actorId);
-
-  if (!actor || !actor.isOwner) {
-    console.log('Mallindor Rest Module | Exiting - no actor or not owner');
-    return;
-  }
-
   await actor.shortRest({ dialog: true });
 };
