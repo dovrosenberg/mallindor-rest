@@ -4,15 +4,28 @@
   "description": "FoundryVTT module for enhanced rest mechanics",
   "type": "module",
   "scripts": {
+    "build": "vite build",
+    "debug": "vite build --minify=false --mode development",
+    "linkdata": "ln -s $PWD/dist ~/foundry13data/Data/modules/mallindor-rest",
+    "unlinkdata": "unlink ~/foundry13data/Data/modules/mallindor-rest",
+    "foundry": "node ~/foundry13/resources/app/main.js --dataPath=/home/dov/foundry13data",
     "lint": "eslint scripts/**/*.mjs",
     "lint:fix": "eslint scripts/**/*.mjs --fix",
     "validate": "node --check scripts/mallindor-rest.mjs && npm run lint"
   },
   "devDependencies": {
+    "@eslint/js": "^8.57.0",
     "eslint": "^8.57.0",
-    "@eslint/js": "^8.57.0"
+    "rollup-plugin-copy": "^3.5.0",
+    "terser": "^5.43.1",
+    "vite": "^5.0.0"
   },
-  "keywords": ["foundry", "foundryvtt", "module", "rest"],
+  "keywords": [
+    "foundry",
+    "foundryvtt",
+    "module",
+    "rest"
+  ],
   "author": "Your Name",
   "license": "MIT"
 }

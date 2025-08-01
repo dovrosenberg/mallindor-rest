@@ -8,11 +8,11 @@ import { relaxRest } from './relax-rest.mjs';
 import { longRest } from './long-rest.mjs';
 import { SocketManager } from './socket.mjs';
 
-Hooks.once("init", async () => {
+Hooks.once('init', async () => {
   SocketManager.init();
 });
 
-Hooks.once("ready", async () => {
+Hooks.once('ready', async () => {
   // Assign the imported functions to the game object
   game.mallindorRest = {
     shortRest,
@@ -20,5 +20,5 @@ Hooks.once("ready", async () => {
     longRest
   };
 
-  console.log("Mallindor Rest Module | All rest functions loaded and assigned");
+  console.log('Mallindor Rest Module | All rest functions loaded and assigned');
 });

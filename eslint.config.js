@@ -50,7 +50,7 @@ export default [
     },
     rules: {
       'no-unused-vars': ['error', { 'argsIgnorePattern': '^_' }],
-      'no-console': 'warn',
+      'no-console': 'off',
       'prefer-const': 'error',
       'no-var': 'error',
       'eqeqeq': 'error',
@@ -60,7 +60,7 @@ export default [
       'indent': ['error', 2],
       'no-trailing-spaces': 'error',
       'eol-last': 'error',
-      'comma-dangle': ['error', 'never'],
+      'comma-dangle': 'off',
       'object-curly-spacing': ['error', 'always'],
       'array-bracket-spacing': ['error', 'never'],
       'space-before-function-paren': 'off',

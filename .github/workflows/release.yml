@@ -21,6 +21,18 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build module
+      run: npm run build
+      
     - name: Validate version format
       run: |
         if [[ ! "${{ github.event.inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-.*)?$ ]]; then
@@ -42,7 +54,7 @@ jobs:
         
         # Copy required files to bundle directory
         cp module.json mallindor-rest/
-        cp -r scripts mallindor-rest/
+        cp -r dist mallindor-rest/
         
         # Create the zip file
         zip -r mallindor-rest-${{ github.event.inputs.version }}.zip mallindor-rest/

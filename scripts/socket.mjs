@@ -56,7 +56,6 @@ export class SocketManager {
 }
 
 // show the dialog to allow the player to use HD
-// save and restore pact spells so warlocks don't get spells back since this isn't actually a short rest
 const assignHitDice = async (actorId) => {
   debugger;
   const actor = game.actors.get(actorId);
@@ -66,13 +65,10 @@ const assignHitDice = async (actorId) => {
     return;
   }
 
-  await savePactSpells(actor);
-
+  // no need to handle warlocks because they get full recovery on short and long rest, so they just got
+  //    recovered before we got here anyway
   // show the dialog to allow the player to use HD
   await actor.shortRest({ dialog: true });
-
-  // Reset pact slots if needed
-  await restorePactSpells(actor);
 };
 
 // show the dialog to allow the player to use HD for sorcery points
