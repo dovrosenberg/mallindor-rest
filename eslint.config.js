@@ -63,7 +63,7 @@ export default [
       'comma-dangle': ['error', 'never'],
       'object-curly-spacing': ['error', 'always'],
       'array-bracket-spacing': ['error', 'never'],
-      'space-before-function-paren': ['error', 'never'],
+      'space-before-function-paren': 'off',
       'keyword-spacing': 'error',
       'space-infix-ops': 'error',
       'no-multiple-empty-lines': ['error', { 'max': 2 }]

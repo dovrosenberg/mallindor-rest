@@ -4,6 +4,7 @@
 
 import { SocketManager } from './socket.mjs';
 import { saveHP, restoreHP, addHD } from './hp.mjs';
+import { restorePactSpells, restoreSlots, savePactSpells, saveSpells } from './spells.mjs';
 
 export const longRest = async function () { 
   // Mallindor Custom Long Rest Macro
@@ -39,36 +40,19 @@ export const longRest = async function () {
             const actor = game.actors.get(id);
 
             // 1. Save spell slots and HP before rest
-            const savedSlots = {};
-            for (let lvl = 1; lvl <= 9; lvl++) {
-              savedSlots[`spell${lvl}`] = getProperty(actor, `system.spells.spell${lvl}.value`);
-            }
-            savedSlots.pact = getProperty(actor, 'system.spells.pact.value');
-
+            const spellSlotsToRestore = saveSpells(actor);
+            savePactSpells(actor);
             saveHP(actor);
-            
+
             // 2. Run long rest
             await actor.longRest({ dialog: false });
 
             // 3. Mallindor rules: partial HP recovery, calculate spell slot recovery value
             const unrecoveredHP = await restoreHP(actor, true);
 
-            // Calculate spell slot recovery (by level total)
-            let totalUsed = 0;
-            for (let lvl = 1; lvl <= 9; lvl++) {
-              const slot = actor.system.spells[`spell${lvl}`];
-              totalUsed += (slot.max - slot.value) * lvl;
-            }
-            totalUsed += (actor.system.spells.pact.max - actor.system.spells.pact.value) * actor.system.spells.pact.level;
-            const toRestore = Math.ceil(totalUsed / 2);
-
             // Set spell slots back to pre-rest state so players can reallocate
-            const restoreSlots = {};
-            for (let lvl = 1; lvl <= 9; lvl++) {
-              restoreSlots[`system.spells.spell${lvl}.value`] = savedSlots[`spell${lvl}`];
-            }
-            restoreSlots['system.spells.pact.value'] = savedSlots.pact;
-            await actor.update(restoreSlots);
+            await restoreSlots(actor);
+            await restorePactSpells(actor);
 
             // add one HD to the actor
             const addedHD = await addHD(actor);
@@ -76,17 +60,8 @@ export const longRest = async function () {
             const playerUser = game.users.find(u => u.active && u.id !== game.user.id && actor.testUserPermission(u, 'OWNER'));
             const whisperTo = playerUser ? [playerUser.id, ...ChatMessage.getWhisperRecipients('GM').map(u => u.id)] : ChatMessage.getWhisperRecipients('GM').map(u => u.id);
 
-            // Send reallocation prompt
-            if (toRestore > 0) {
-              ChatMessage.create({
-                content: `<strong>${actor.name}</strong> may reallocate up to <strong>${toRestore}</strong> levels of spell slots.`,
-                whisper: []
-              });
-            }
-
             // Send HD spending message
             if (playerUser) {
-
               try {
                 await SocketManager.assignHitDice(playerUser.id, actor.id);
               } catch (error) {
@@ -117,7 +92,16 @@ export const longRest = async function () {
               }
             }
 
-            ChatMessage.create({ content: `<strong>${actor.name}</strong> completed a Mallindor Long Rest. ${unrecoveredHP > 0 ? `HP restoration reduced by ${unrecoveredHP}.` : ''} ${addedHD ? 'One HD has been restored.' : ''} Spell slots have not been restored yet.`, whisper: [] });
+            // send summary
+            ChatMessage.create({ content: `<strong>${actor.name}</strong> completed a Mallindor Long Rest. ${unrecoveredHP > 0 ? `HP restoration reduced by ${unrecoveredHP}.` : ''} ${addedHD ? 'One HD has been restored.' : ''} ${spellSlotsToRestore > 0 ? 'Spell slots have not been restored yet.' : ''}`, whisper: [] });
+
+            // Send reallocation prompt
+            if (spellSlotsToRestore > 0) {
+              ChatMessage.create({
+                content: `<strong>${actor.name}</strong> may reallocate up to <strong>${spellSlotsToRestore}</strong> levels of spell slots.`,
+                whisper: []
+              });
+            }
           }
         }
       },
