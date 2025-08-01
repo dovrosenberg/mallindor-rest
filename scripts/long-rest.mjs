@@ -50,119 +50,157 @@ export const longRest = async function () {
   </form>`;
 
   new Dialog({
-    title: 'Mallindor Long Rest',
+    title: 'Mallindor Long Rest - Step 1',
     content,
     buttons: {
-      rest: {
-        label: 'Apply Long Rest',
+      continue: {
+        label: 'Continue',
         callback: async (html) => {
           const selected = Array.from(html[0].querySelector('select').selectedOptions).map(o => o.value);
           const hadCombat = html.find('[name="hadCombat"]')[0].checked;
 
-          const exhausted = [];
-          const dead = [];
-          const madeSave = [];
-          const failedSave = [];
-
-          for (const id of selected) {
-            const actor = game.actors.get(id);
-            const playerUser = game.users.find(u => u.active && u.id !== game.user.id && actor.testUserPermission(u, 'OWNER'));
-
-            // 1. Save spell slots, HP, HD, and exhaustion before rest
-            const spellSlotsToRestore = saveSpells(actor);
-            saveHP(actor);
-            const beforeEx = actor.system.attributes.exhaustion ?? 0;
-
-            // 2. Run long rest
-            await actor.longRest({ dialog: false });
-
-            // 3. Mallindor rules: partial HP recovery, calculate spell slot recovery value
-            const unrecoveredHP = await restoreHP(actor, true);
-
-            // Set spell slots back to pre-rest state so players can reallocate
-            const unrecoveredSlots = await restoreSlots(actor);
-
-            // add one HD to the actor
-            const addedHD = await addHD(actor);
-
-            // const whisperTo = playerUser ? [playerUser.id, ...ChatMessage.getWhisperRecipients('GM').map(u => u.id)] : ChatMessage.getWhisperRecipients('GM').map(u => u.id);
-
-            if (playerUser) {
-              try {
-                // Send HD spending message - this will trigger the client on the players side to allow HD for healing
-                await SocketManager.assignHitDice(playerUser.id, actor.id);
-
-                // Send reallocation prompt
-                if (spellSlotsToRestore > 0) {
-                  await SocketManager.assignSpellSlots(playerUser.id, actor.id, spellSlotsToRestore);
-                }
-              } catch (error) {
-                console.error('Mallindor Rest Module | Socket call failed:', error);
-              }
-            }
-
-            // 4. Exhaustion check
-            // first restore the old one in case the long rest reduced it
-            await actor.update({ 'system.attributes.exhaustion': beforeEx });
-
-            if (hadCombat) {
-              const dc = 11 + 2 * beforeEx;
-              const result = await new Roll('1d20 + @abilities.con.mod', actor.getRollData()).roll({ async: true });
-              if (result.total >= dc) {
-                madeSave.push(actor.name);
-              } else {
-                failedSave.push(actor.name);
-              }
-            }
-
-            // clear short rest counter
-            await actor.unsetFlag('world', 'mallindor.shortRestCount');
-
-            // send summary
-            ChatMessage.create({ content: `<strong>${actor.name}</strong> completed a Mallindor Long Rest. \
-              ${unrecoveredHP > 0 ? `HP restoration reduced by ${unrecoveredHP}.` : ''} \
-              ${unrecoveredSlots > 0 ? `Pact spell restoration reduced by ${unrecoveredSlots}.` : ''} \
-              ${addedHD ? 'One HD has been restored.' : ''} \
-              ${spellSlotsToRestore > 0 ? 'Spell slots have not been restored yet.  You have ' + spellSlotsToRestore + 'spell slot level to allocate.' : ''}`,
-             whisper: []
-            });
-          }
-
-          // check group exhaustion save - have to apply to everyone
-          if (madeSave.length < failedSave.length) {
-            for (const id of selected) {
-              const actor = game.actors.get(id);
-
-              const beforeEx = actor.system.attributes.exhaustion ?? 0;
-              const newEx = Math.min(beforeEx + 1, 6);
-
-              await actor.update({ 'system.attributes.exhaustion': newEx });
-
-              if (newEx >= 6) {
-                dead.push(actor.name);
-              } else {
-                exhausted.push(`${actor.name} (Exhaustion ${beforeEx} → ${newEx})`);
-              }
-            }
-          }
-
-          if (exhausted.length) {
-            ChatMessage.create({
-              content: `<strong>Exhaustion gained due to failed group CON save:</strong><br>${exhausted.join('<br>')}`,
-              whisper: []
-            });
-          }
-
-          if (dead.length) {
-            ChatMessage.create({
-              content: `<strong>The following characters have reached Exhaustion 6 and died:</strong><br>${dead.join('<br>')}`,
-              whisper: [game.user.id]
-            });
+          if (hadCombat) {
+            // Output CON save DCs to chat and show second dialog
+            await showCombatSaveDialog(selected);
+          } else {
+            // No combat, proceed directly with rest
+            await applyLongRest(selected, false, false);
           }
         }
       },
       cancel: { label: 'Cancel' }
     },
-    default: 'rest'
+    default: 'continue'
   }).render(true);
+};
+
+// Helper function to show combat save dialog (step 2)
+const showCombatSaveDialog = async (selectedActorIds) => {
+  // First, output CON save DCs to chat
+  const saveInfo = [];
+  for (const id of selectedActorIds) {
+    const actor = game.actors.get(id);
+    const beforeEx = actor.system.attributes.exhaustion ?? 0;
+    const dc = 11 + 2 * beforeEx;
+    saveInfo.push(`${actor.name} (DC ${dc})`);
+  }
+
+  // Output to chat
+  ChatMessage.create({
+    content: `<strong>Group CON Save DCs for Long Rest:</strong><br>${saveInfo.join('<br>')}`,
+    whisper: []
+  });
+
+  // Show second dialog for GM to mark pass/fail
+  const content2 = `<form>
+    <div style="display: flex; flex-direction: column; gap: 0.5em;">
+      <div style="font-weight: bold; margin-bottom: 0.5em;">
+        CON save DCs have been posted to chat. After players roll:
+      </div>
+      <div>
+        <label><input type="checkbox" name="groupSavePassed"> Group CON save passed (≥50% of party succeeded)</label>
+      </div>
+    </div>
+  </form>`;
+
+  new Dialog({
+    title: 'Mallindor Long Rest - Step 2: CON Save Result',
+    content: content2,
+    buttons: {
+      complete: {
+        label: 'Complete Long Rest',
+        callback: async (html) => {
+          const groupSavePassed = html.find('[name="groupSavePassed"]')[0].checked;
+          await applyLongRest(selectedActorIds, true, groupSavePassed);
+        }
+      },
+      cancel: { label: 'Cancel' }
+    },
+    default: 'complete'
+  }).render(true);
+};
+
+// Helper function to apply the actual long rest
+const applyLongRest = async (selectedActorIds, hadCombat, groupSavePassed) => {
+  const exhausted = [];
+  const dead = [];
+
+  for (const id of selectedActorIds) {
+    const actor = game.actors.get(id);
+    const playerUser = game.users.find(u => u.active && u.id !== game.user.id && actor.testUserPermission(u, 'OWNER'));
+
+    // 1. Save spell slots, HP, HD, and exhaustion before rest
+    const spellSlotsToRestore = saveSpells(actor);
+    saveHP(actor);
+    const beforeEx = actor.system.attributes.exhaustion ?? 0;
+
+    // 2. Run long rest
+    await actor.longRest({ dialog: false });
+
+    // 3. Mallindor rules: partial HP recovery, calculate spell slot recovery value
+    const unrecoveredHP = await restoreHP(actor, true);
+
+    // Set spell slots back to pre-rest state so players can reallocate
+    const unrecoveredSlots = await restoreSlots(actor);
+
+    // add one HD to the actor
+    const addedHD = await addHD(actor);
+
+    if (playerUser) {
+      try {
+        // Send HD spending message - this will trigger the client on the players side to allow HD for healing
+        await SocketManager.assignHitDice(playerUser.id, actor.id);
+
+        // Send reallocation prompt
+        if (spellSlotsToRestore > 0) {
+          await SocketManager.assignSpellSlots(playerUser.id, actor.id, spellSlotsToRestore);
+        }
+      } catch (error) {
+        console.error('Mallindor Rest Module | Socket call failed:', error);
+      }
+    }
+
+    // 4. Exhaustion check - restore the old exhaustion level first
+    await actor.update({ 'system.attributes.exhaustion': beforeEx });
+
+    // Apply exhaustion if combat and group save failed
+    if (hadCombat && !groupSavePassed) {
+      const newEx = Math.min(beforeEx + 1, 6);
+      await actor.update({ 'system.attributes.exhaustion': newEx });
+
+      if (newEx >= 6) {
+        dead.push(actor.name);
+      } else {
+        exhausted.push(`${actor.name} (Exhaustion ${beforeEx} → ${newEx})`);
+      }
+    }
+
+    // clear short rest counter
+    await actor.unsetFlag('world', 'mallindor.shortRestCount');
+
+    // send summary
+    ChatMessage.create({ 
+      content: `<strong>${actor.name}</strong> completed a Mallindor Long Rest. \
+        ${unrecoveredHP > 0 ? `HP restoration reduced by ${unrecoveredHP}.` : ''} \
+        ${unrecoveredSlots > 0 ? `Pact spell restoration reduced by ${unrecoveredSlots}.` : ''} \
+        ${addedHD ? 'One HD has been restored.' : ''} \
+        ${spellSlotsToRestore > 0 ? 'Spell slots have not been restored yet. You have ' + spellSlotsToRestore + ' spell slot levels to allocate.' : ''}`,
+      whisper: []
+    });
+  }
+
+  // Output exhaustion results if any
+  if (exhausted.length) {
+    ChatMessage.create({
+      content: `<strong>Exhaustion gained due to failed group CON save:</strong><br>${exhausted.join('<br>')}`,
+      whisper: []
+    });
+  }
+
+  if (dead.length) {
+    ChatMessage.create({
+      content: `<strong>The following characters have reached Exhaustion 6 and died:</strong><br>${dead.join('<br>')}`,
+      whisper: [game.user.id]
+    });
+  }
 };

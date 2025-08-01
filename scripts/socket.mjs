@@ -58,7 +58,6 @@ export class SocketManager {
 
 // show the dialog to allow the player to use HD
 const assignHitDice = async (actorId) => {
-  debugger;
   const actor = game.actors.get(actorId);
 
   if (!actor || !actor.isOwner) {
