@@ -68,7 +68,7 @@ jobs:
       uses: actions/create-release@v1
       id: create_release
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       with:
         tag_name: ${{ github.event.inputs.version }}
         release_name: Mallindor Rest Rules ${{ github.event.inputs.version }}
@@ -94,7 +94,7 @@ jobs:
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./mallindor-rest-${{ github.event.inputs.version }}.zip

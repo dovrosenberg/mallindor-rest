@@ -8,6 +8,7 @@
       "name": "Dov Rosenberg"
     }
   ],
+  "url": "https://github.com/dovrosenberg/mallindor-rest",
   "esmodules": [
     "scripts/index.mjs"
   ],
