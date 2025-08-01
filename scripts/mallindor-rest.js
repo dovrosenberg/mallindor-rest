@@ -1,15 +1,21 @@
-console.log("Mallindor Rest Module | Script file loaded");
-
 let socket;
 
 Hooks.once("socketlib.ready", () => {
   console.log("Mallindor Rest Module | SocketLib Ready");
   socket = socketlib.registerModule("mallindor-rest");
+  debugger;
+  console.log("Mallindor Rest Module | Socket registered:", socket);
   
   socket.register("showShortRestDialog", async (actorId) => {
     debugger;
     const actor = game.actors.get(actorId);
-    if (!actor || !actor.isOwner) return;
+    
+    if (!actor || !actor.isOwner) {
+      console.log("Mallindor Rest Module | Exiting - no actor or not owner");
+      return;
+    }
+
+    console.log("Mallindor Rest Module | About to show short rest dialog");
 
     // show the dialog to allow the player to use HD
     await actor.shortRest({ dialog: true });
@@ -20,10 +26,19 @@ Hooks.once("socketlib.ready", () => {
       await actor.update({ "system.spells.pact.value": pact.max });
     }
   });
+  
+  console.log("Mallindor Rest Module | showShortRestDialog function registered");
 });
 
 Hooks.once("ready", () => {
-  console.log("Mallindor Rest Module | Ready");
+  // Add CSS rule to hide the Rest Configuration fieldset with newDay checkbox and then the button
+  const style = document.createElement('style');
+  style.textContent = 'fieldset:has([name="newDay"]) { display: none !important; }';
+  document.head.appendChild(style);
+
+  const buttonStyle = document.createElement('style');
+  buttonStyle.textContent = '.dnd5e2.short-rest .form-footer { display: none !important; }';
+  document.head.appendChild(buttonStyle);
 
   // Socket listener to trigger above hook remotely (e.g. GM initiates for players)
   game.socket.on("module.mallindor-rest", (data) => {
@@ -32,7 +47,6 @@ Hooks.once("ready", () => {
     }
   });
 
-  debugger;
   game.mallindorRest = {
 
     //////////////////////////////////////////////////////
@@ -229,8 +243,6 @@ Hooks.once("ready", () => {
                 const hp = actor.system.attributes.hp;
                 const maxHP = hp.max;
                 const recoveredHP = Math.ceil((maxHP - hp.value) / 2);
-
-                // capture current HD
                 const HD = actor.system.attributes.hd;
                 
                 // 2. Run long rest
@@ -257,9 +269,13 @@ Hooks.once("ready", () => {
                 await actor.update(restoreSlots);
 
                 // add one HD to the actor
-                await actor.update({ "system.attributes.hd": HD + 1 });
+                HD.value = Math.min(HD.max, HD.value + 1);
+                await actor.update({ "system.attributes.hd": HD });
 
-                const playerUser = game.users.find(u => u.character?.id === actor.id && u.active);
+                const playerUser = game.users.find(u => u.active && u.id!==game.user.id && actor.testUserPermission(u, "OWNER"));
+                console.log("Mallindor Rest Module | Looking for player user for actor:", actor.name, actor.id);
+                console.log("Mallindor Rest Module | All users:", game.users.map(u => ({name: u.name, id: u.id, active: u.active, characterId: u.character?.id})));
+                console.log("Mallindor Rest Module | Found playerUser:", playerUser);
                 const whisperTo = playerUser ? [playerUser.id, ...ChatMessage.getWhisperRecipients("GM").map(u => u.id)] : ChatMessage.getWhisperRecipients("GM").map(u => u.id);
 
                 // Send reallocation prompt
@@ -272,7 +288,16 @@ Hooks.once("ready", () => {
 
                 // Send HD spending message
                 if (playerUser) {
-                  await socket.executeForUsers("showShortRestDialog", [playerUser.id], actor.id);
+                  console.log("Mallindor Rest Module | GM calling showShortRestDialog for:", actor.name, "to user:", playerUser.name, playerUser.id);
+                  console.log("Mallindor Rest Module | Socket object:", socket);
+                  try {
+                    await socket.executeForUsers("showShortRestDialog", [playerUser.id], actor.id);
+                    console.log("Mallindor Rest Module | Socket call completed successfully");
+                  } catch (error) {
+                    console.error("Mallindor Rest Module | Socket call failed:", error);
+                  }
+                } else {
+                  console.log("Mallindor Rest Module | No playerUser found for actor:", actor.name);
                 }
 
                 // 4. Exhaustion check
