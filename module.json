@@ -4,7 +4,9 @@
   "description": "Implements Mallindor-style rest mechanics with exhaustion, partial healing, and custom dialog triggers.",
   "version": "1.0.0",
   "author": "Dov Rosenberg",
-  "scripts": ["scripts/mallindor-rest.js"],
+  "esmodules": [
+    "scripts/mallindor-rest.mjs"
+  ],
   "socket": true,
   "compatibility": {
     "minimum": "13",

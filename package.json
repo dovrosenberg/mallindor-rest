@@ -1,0 +1,18 @@
+{
+  "name": "mallindor-rest",
+  "version": "1.0.0",
+  "description": "FoundryVTT module for enhanced rest mechanics",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint scripts/**/*.mjs",
+    "lint:fix": "eslint scripts/**/*.mjs --fix",
+    "validate": "node --check scripts/mallindor-rest.mjs && npm run lint"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "@eslint/js": "^8.57.0"
+  },
+  "keywords": ["foundry", "foundryvtt", "module", "rest"],
+  "author": "Your Name",
+  "license": "MIT"
+}
