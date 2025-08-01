@@ -1,0 +1,31 @@
+{
+  "id": "mallindor-rest",
+  "title": "Mallindor Rest Rules",
+  "description": "Implements Mallindor-style rest mechanics with exhaustion, partial healing, and custom dialog triggers.",
+  "version": "1.0.0",
+  "author": "Dov Rosenberg",
+  "scripts": ["scripts/mallindor-rest.js"],
+  "socket": true,
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13.346"
+  },
+  "url": "https://example.com",
+  "relationships": {
+    "systems": [
+      {
+        "id": "dnd5e",
+        "type": "system",
+        "compatibility": {
+          "minimum": "5.0.0"
+        }
+      }
+    ],
+    "modules": [
+      {
+        "id": "socketlib",
+        "type": "module"
+      }
+    ]
+  }
+}
