@@ -81,19 +81,7 @@ jobs:
         body: |
           ## Installation
           
-          1. Download the `mallindor-rest-${{ github.event.inputs.version }}.zip` file
-          2. Extract it to your FoundryVTT `Data/modules/` directory
-          3. Enable the module in your world settings
-          
-          ## Requirements
-          - FoundryVTT v13+
-          - D&D 5e system v5.0.0+
-          - Socket.io module (socketlib)
-          
-          ## Features
-          - Custom rest mechanics with exhaustion system
-          - Partial healing during rests
-          - Socket-based multiplayer support
+          Copy the link to module.json below and paste into Foundry module installer.
         draft: false
         prerelease: ${{ github.event.inputs.prerelease }}
         artifacts: "./mallindor-rest-${{ github.event.inputs.version }}.zip,./module.json"
@@ -105,4 +93,5 @@ jobs:
         git config --local user.name "GitHub Action"
         git add module.json
         git commit -m "Update version to ${{ github.event.inputs.version }}" || exit 0
+        git remote set-url origin https://x-access-token:${{ secrets.RELEASE_TOKEN }}@github.com/${{ github.repository }}.git
         git push
