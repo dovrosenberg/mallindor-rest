@@ -123,7 +123,7 @@ export const longRest = async function () {
               ${unrecoveredHP > 0 ? `HP restoration reduced by ${unrecoveredHP}.` : ''} \
               ${unrecoveredSlots > 0 ? `Pact spell restoration reduced by ${unrecoveredSlots}.` : ''} \
               ${addedHD ? 'One HD has been restored.' : ''} \
-              ${spellSlotsToRestore > 0 ? 'Spell slots have not been restored yet.' : ''}`,
+              ${spellSlotsToRestore > 0 ? 'Spell slots have not been restored yet.  You have ' + spellSlotsToRestore + 'spell slot level to allocate.' : ''}`,
              whisper: []
             });
           }
