@@ -74,29 +74,30 @@ jobs:
         unzip -l mallindor-rest-${{ github.event.inputs.version }}.zip
         
     - name: Create Release
-      uses: actions/create-release@v1
-      id: create_release
-      env:
-        GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      uses: ncipollo/release-action@v1
       with:
-        tag_name: ${{ github.event.inputs.version }}
-        release_name: Mallindor Rest Rules ${{ github.event.inputs.version }}
+        tag: ${{ github.event.inputs.version }}
+        name: Mallindor Rest Rules ${{ github.event.inputs.version }}
         body: |
           ## Installation
           
-          Copy the link to module.json below and paste into Foundry module installer.
+          1. Download the `mallindor-rest-${{ github.event.inputs.version }}.zip` file
+          2. Extract it to your FoundryVTT `Data/modules/` directory
+          3. Enable the module in your world settings
+          
+          ## Requirements
+          - FoundryVTT v13+
+          - D&D 5e system v5.0.0+
+          - Socket.io module (socketlib)
+          
+          ## Features
+          - Custom rest mechanics with exhaustion system
+          - Partial healing during rests
+          - Socket-based multiplayer support
         draft: false
         prerelease: ${{ github.event.inputs.prerelease }}
-        
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./mallindor-rest-${{ github.event.inputs.version }}.zip
-        asset_name: mallindor-rest-${{ github.event.inputs.version }}.zip
-        asset_content_type: application/zip
+        artifacts: "./mallindor-rest-${{ github.event.inputs.version }}.zip,./module.json"
+        token: ${{ secrets.RELEASE_TOKEN }}
         
     - name: Commit version update
       run: |
