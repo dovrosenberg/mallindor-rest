@@ -68,7 +68,19 @@ const assignHitDice = async (actorId) => {
   // no need to handle warlocks because they get full recovery on short and long rest, so they just got
   //    recovered before we got here anyway
   // show the dialog to allow the player to use HD
-  await actor.shortRest({ dialog: true });
+  const restDialog = actor.shortRest({ dialog: true });
+
+  // wait for it to render, then restyle the short rest dialog to look like a long rest dialog
+  await new Promise(resolve => setTimeout(resolve, 200));
+
+  const dialog = document.querySelector('.application.dnd5e2.rest.short-rest');
+  if (dialog) {
+    dialog.querySelector('header h1').textContent = 'Mallindor Long Rest';
+    dialog.querySelector('form .note.info').textContent = 'On a long rest you may spend remaining Hit Dice to heal.';
+  }
+
+  // promise returns when it closes
+  await restDialog;
 };
 
 // show the dialog to allow the player to allocate recovered spell slots

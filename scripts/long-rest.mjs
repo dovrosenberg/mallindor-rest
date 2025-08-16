@@ -10,6 +10,8 @@ import { restoreSlots, saveSpells } from './spells.mjs';
  * Long Rest rules:
  * - Recover 1/2 HP lost (rounded up)
  * - Recover 1/2 used spell slot levels (rounded up) (warlocks get full recovery)
+ *   - There is a minimum recovery of (proficiency bonus - 1)*(spellcasting ability modifier)
+ *   - Multiclasses characters use the average of their relevant ability modifiers
  * - Recover 1 HD if you have any spent HD
  * - Characters can then apply HD to heal
  * - No exhaustion recovery
@@ -25,7 +27,8 @@ import { restoreSlots, saveSpells } from './spells.mjs';
  * - Reset HP and HD to the proper (penalized recovery) levels
  * - Add on HD if you have any spent HD
  * - Allow players with HD to apply HD to heal
- * - Allow players with spells to reallocate spell slots
+ * - Allow players with spells to reallocate spell slots - if recovered levels >= empty levels then, just 
+ *    restore all slots automatically
  * - Clear the short rest counter
  *
  */
@@ -140,8 +143,11 @@ const applyLongRest = async (selectedActorIds, hadCombat, groupSavePassed) => {
     // 3. Mallindor rules: partial HP recovery, calculate spell slot recovery value
     const unrecoveredHP = await restoreHP(actor, true);
 
-    // Set spell slots back to pre-rest state so players can reallocate
-    const unrecoveredSlots = await restoreSlots(actor);
+    // Set spell slots back to pre-rest state so players can reallocate; if spellSlotsToRestore is -1, we're getting them all back
+    let unrecoveredSlots = 0;
+    if (spellSlotsToRestore !== -1) {
+      unrecoveredSlots = await restoreSlots(actor);
+    }
 
     // add one HD to the actor
     const addedHD = await addHD(actor);
@@ -184,6 +190,7 @@ const applyLongRest = async (selectedActorIds, hadCombat, groupSavePassed) => {
         ${unrecoveredHP > 0 ? `HP restoration reduced by ${unrecoveredHP}.` : ''} \
         ${unrecoveredSlots > 0 ? `Pact spell restoration reduced by ${unrecoveredSlots}.` : ''} \
         ${addedHD ? 'One HD has been restored.' : ''} \
+        ${spellSlotsToRestore === -1 ? 'Recovering sufficient spells to refill all spent slots.' : ''} \
         ${spellSlotsToRestore > 0 ? 'Spell slots have not been restored yet. You have ' + spellSlotsToRestore + ' spell slot levels to allocate.' : ''}`,
       whisper: []
     });
