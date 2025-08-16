@@ -20,11 +20,15 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+      with:
+        token: ${{ secrets.RELEASE_TOKEN }}
+        persist-credentials: false
+        fetch-depth: 0
+        
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '22'
         cache: 'npm'
         
     - name: Install dependencies
@@ -93,4 +97,7 @@ jobs:
         git config --local user.name "Dov Rosenberg - action"
         git add module.json
         git commit -m "Update version to ${{ github.event.inputs.version }}" || exit 0
+        # Ensure we use the PAT for authentication when pushing
+        git config --local --unset-all http.https://github.com/.extraheader || true
+        git remote set-url origin https://x-access-token:${{ secrets.RELEASE_TOKEN }}@github.com/${{ github.repository }}.git
         git push
