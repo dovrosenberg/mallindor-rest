@@ -93,5 +93,4 @@ jobs:
         git config --local user.name "Dov Rosenberg - action"
         git add module.json
         git commit -m "Update version to ${{ github.event.inputs.version }}" || exit 0
-        git remote set-url origin https://x-access-token:${{ secrets.RELEASE_TOKEN }}@github.com/${{ github.repository }}.git
         git push
