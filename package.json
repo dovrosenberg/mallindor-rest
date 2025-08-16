@@ -1,6 +1,6 @@
 {
   "name": "mallindor-rest",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "FoundryVTT module for enhanced rest mechanics",
   "type": "module",
   "scripts": {

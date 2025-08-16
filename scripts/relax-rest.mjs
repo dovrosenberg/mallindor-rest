@@ -63,7 +63,9 @@ export const relaxRest = async function () {
             // Clear rest tracking flag
             await actor.unsetFlag('world', 'mallindor.shortRestCount');
 
-            recovered.push(`${actor.name} (Exhaustion ${beforeEx} → ${newEx})`);
+            if (beforeEx !== newEx) {
+              recovered.push(`${actor.name} (Exhaustion ${beforeEx} → ${newEx})`);
+            }
           }
 
           if (recovered.length) {
