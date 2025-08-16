@@ -89,8 +89,8 @@ jobs:
         
     - name: Commit version update
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.email "dov@rosenbergmail.com"
+        git config --local user.name "Dov Rosenberg - action"
         git add module.json
         git commit -m "Update version to ${{ github.event.inputs.version }}" || exit 0
         git remote set-url origin https://x-access-token:${{ secrets.RELEASE_TOKEN }}@github.com/${{ github.repository }}.git
