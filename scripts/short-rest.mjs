@@ -70,10 +70,13 @@ export const shortRest = async function () {
 
               const newEx = currentEx + 1;
               await actor.update({ 'system.attributes.exhaustion': newEx });
-              exhausted.push(`${actor.name} (Exhaustion ${currentEx} → ${newEx})`);
 
-              if (newEx === 6) {
-                dead.push(actor.name);
+              if (currentEx !== newEx) {
+                exhausted.push(`${actor.name} (Exhaustion ${currentEx} → ${newEx})`);
+
+                if (newEx >= 6) {
+                  dead.push(actor.name);
+                }
               }
             }
           }
