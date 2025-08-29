@@ -174,10 +174,12 @@ const applyLongRest = async (selectedActorIds, hadCombat, groupSavePassed) => {
       const newEx = Math.min(beforeEx + 1, 6);
       await actor.update({ 'system.attributes.exhaustion': newEx });
 
-      if (newEx >= 6) {
-        dead.push(actor.name);
-      } else {
+      if (beforeEx !== newEx) {
         exhausted.push(`${actor.name} (Exhaustion ${beforeEx} → ${newEx})`);
+
+        if (newEx >= 6) {
+          dead.push(actor.name);
+        }
       }
     }
 
