@@ -51,7 +51,7 @@ jobs:
         with:
           files: './module.json'
         env:
-          DOWNLOAD: https://github.com/${{github.repository}}/releases/download/${{github.event.inputs.version}}/${{github.event.inputs.version}}.zip
+          DOWNLOAD: https://github.com/${{github.repository}}/releases/download/${{github.event.inputs.version}}/module.zip
           VERSION: ${{ env.pkg_version }}
   
       - name: Install dependencies
