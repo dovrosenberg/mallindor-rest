@@ -94,13 +94,14 @@ jobs:
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
+          allowUpdates: true # Set this to false if you want to prevent updating existing releases
           name: ${{ github.event.inputs.version }}
           body: |
             ## Installation
           
             Copy the link to module.json below and paste into Foundry module installer.
           draft: false
+          token: ${{ secrets.RELEASE_TOKEN }}
           tag: ${{ github.event.inputs.version }}
           prerelease: ${{ github.event.inputs.prerelease }}
-          artifacts: "./mallindor-rest-${{ github.event.inputs.version }}.zip,./module.json"
-          token: ${{ secrets.RELEASE_TOKEN }}
+          artifacts: "./module.zip,./module.json"
