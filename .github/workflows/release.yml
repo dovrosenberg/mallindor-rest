@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., v1.0.0)'
+        description: 'Release version for label (e.g., v1.0.0)'
         required: true
         type: string
       prerelease:
@@ -14,90 +14,93 @@ on:
         default: false
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.RELEASE_TOKEN }}
-        persist-credentials: false
-        fetch-depth: 0
-        
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Build module
-      run: npm run build
-      
-    - name: Validate version format
-      run: |
-        if [[ ! "${{ github.event.inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-.*)?$ ]]; then
-          echo "Error: Version must be in format v1.0.0 or v1.0.0-beta"
-          exit 1
-        fi
-        
-    - name: Extract version number
-      run: |
-        VERSION="${{ github.event.inputs.version }}"
-        VERSION_NUMBER="${VERSION#v}"  # Remove 'v' prefix if present
-        echo "VERSION_NUMBER=$VERSION_NUMBER" >> $GITHUB_ENV
-        
-    - name: Update module.json version and download link
-      uses: cschleiden/replace-tokens@v1
-      with:
-        files: './module.json'
-      env:
-        DOWNLOAD: https://github.com/${{github.repository}}/releases/download/${{github.event.inputs.version}}/mallindor-rest-${{github.event.inputs.version}}.zip
-        VERSION: ${{ env.VERSION_NUMBER }}
-        
-    - name: Create release bundle
-      run: |
-        # Create a temporary directory for the bundle
-        mkdir -p release-bundle
-        
-        # Copy module.json to bundle directory
-        cp module.json release-bundle/
-        
-        # Copy dist contents (not the dist folder itself) to bundle directory
-        cp -r dist/* release-bundle/
-        
-        # Create the zip file from bundle contents
-        (cd release-bundle; zip -r ../mallindor-rest-${{ github.event.inputs.version }}.zip .)
-        
-    - name: Verify bundle contents
-      run: |
-        echo "Bundle contents:"
-        unzip -l mallindor-rest-${{ github.event.inputs.version }}.zip
-        
-    - name: Create Release
-      uses: ncipollo/release-action@v1
-      with:
-        name: Mallindor Rest Rules ${{ github.event.inputs.version }}
-        body: |
-          ## Installation
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 0
           
-          Copy the link to module.json below and paste into Foundry module installer.
-        draft: false
-        tag: ${{ github.event.inputs.version }}
-        prerelease: ${{ github.event.inputs.prerelease }}
-        artifacts: "./mallindor-rest-${{ github.event.inputs.version }}.zip,./module.json"
-        token: ${{ secrets.RELEASE_TOKEN }}
-        
-    - name: Commit version update
-      run: |
-        git config --local user.email "dov@rosenbergmail.com"
-        git config --local user.name "Dov Rosenberg - action"
-        git add module.json
-        git commit -m "Update version to ${{ github.event.inputs.version }}" || exit 0
-        # Ensure we use the PAT for authentication when pushing
-        git config --local --unset-all http.https://github.com/.extraheader || true
-        git remote set-url origin https://x-access-token:${{ secrets.RELEASE_TOKEN }}@github.com/${{ github.repository }}.git
-        git push
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+  
+      - name: Validate version format
+        run: |
+          if [[ ! "${{ github.event.inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-.*)?$ ]]; then
+            echo "Error: Version must be in format v1.0.0 or v1.0.0-beta"
+            exit 1
+          fi
+
+      # update version and download link in module.json
+      - name: Read version from package.json
+        id: read_version_from_package
+        run: |
+          PKG_VERSION=$(jq -r '.version' package.json)
+          echo "pkg_version=$PKG_VERSION" >> $GITHUB_ENV
+          echo "$GITHUB_ENV"
+
+      - name: Update module.json version and download link
+        id: update_module_version
+        uses: cschleiden/replace-tokens@v1
+        with:
+          files: './module.json'
+        env:
+          DOWNLOAD: https://github.com/${{github.repository}}/releases/download/${{github.event.inputs.version}}/mallindor-rest-${{github.event.inputs.version}}.zip
+          VERSION: ${{ env.pkg_version }}
+  
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build module
+        run: npm run build
+
+      # save the output folder for release job
+      - name: Archive dist folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: module-download
+          path: dist/
+      
+      - name: Archive module json
+        uses: actions/upload-artifact@v4
+        with:
+          name: module
+          path: ./module.json 
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download module download file
+        uses: actions/download-artifact@v4
+        with:
+          name: module-download
+          path: module-download
+      
+      - name: Download module.json
+        uses: actions/download-artifact@v4
+        with:
+          name: module
+      
+      # Create a zip file with all files required by the module to add to the release
+      - run: (cd module-download; zip -r ../module.zip .)
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          name: ${{ github.event.inputs.version }}
+          body: |
+            ## Installation
+          
+            Copy the link to module.json below and paste into Foundry module installer.
+          draft: false
+          tag: ${{ github.event.inputs.version }}
+          prerelease: ${{ github.event.inputs.prerelease }}
+          artifacts: "./mallindor-rest-${{ github.event.inputs.version }}.zip,./module.json"
+          token: ${{ secrets.RELEASE_TOKEN }}
