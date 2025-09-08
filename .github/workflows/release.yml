@@ -51,7 +51,7 @@ jobs:
         with:
           files: './module.json'
         env:
-          DOWNLOAD: https://github.com/${{github.repository}}/releases/download/${{github.event.inputs.version}}/mallindor-rest-${{github.event.inputs.version}}.zip
+          DOWNLOAD: https://github.com/${{github.repository}}/releases/download/${{github.event.inputs.version}}/${{github.event.inputs.version}}.zip
           VERSION: ${{ env.pkg_version }}
   
       - name: Install dependencies
@@ -73,10 +73,10 @@ jobs:
           name: module
           path: ./module.json 
 
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
+  # release:
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   steps:
       - name: Download module download file
         uses: actions/download-artifact@v4
         with:
