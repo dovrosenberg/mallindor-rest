@@ -80,13 +80,13 @@ jobs:
     - name: Create Release
       uses: ncipollo/release-action@v1
       with:
-        tag: ${{ github.event.inputs.version }}
         name: Mallindor Rest Rules ${{ github.event.inputs.version }}
         body: |
           ## Installation
           
           Copy the link to module.json below and paste into Foundry module installer.
         draft: false
+        tag: ${{ github.event.inputs.version }}
         prerelease: ${{ github.event.inputs.prerelease }}
         artifacts: "./mallindor-rest-${{ github.event.inputs.version }}.zip,./module.json"
         token: ${{ secrets.RELEASE_TOKEN }}
